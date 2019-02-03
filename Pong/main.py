@@ -47,21 +47,31 @@ class Ball(pygame.sprite.Sprite):
 class Paddle(pygame.sprite.Sprite):
     def __init__(self, image, image_rect, x, y):
         super().__init__()
+        self.area = pygame.display.get_surface().get_rect()
         self.image = image
         self.size = self.image.get_size()
         self.rect = image_rect
         self.rect.centerx = x
         self.rect.centery = y
-        self.velocity = 10
+        self.velocity = 12
+        self.state = ''
 
     def update(self):
         pass
 
     def move_up(self):
-        self.rect.centerx += self.velocity
+        newpos = Rect(self.rect)
+        newpos.bottom -= self.velocity
+        if self.area.contains(newpos):
+            self.rect.centery -= self.velocity
+        self.state = 'moveup'
 
     def move_down(self):
-        self.rect.centery -= self.velocity
+        newpos = Rect(self.rect)
+        newpos.bottom += self.velocity
+        if self.area.contains(newpos):
+            self.rect.centery += self.velocity
+        self.state = 'movedown'
 
 
 def main():
@@ -73,6 +83,7 @@ def main():
     while load:
         ball_img, ball_rect = load_image('ball.png')
         player_l_img, player_l_rect = load_image('left_board.png')
+        player_r_img, player_r_rect = load_image('right_board.png')
         load = 0
     # basic init
     pygame.display.set_caption('Pong')
@@ -97,15 +108,22 @@ def main():
     # background.blit(text_l, text_l_pos)
     # background.blit(text_r, text_r_pos)
 
-    # create and init ball obj, player_l obj
+    # create and init ball
     ball = Ball(ball_img, ball_rect, display_size[0]/2, display_size[1]/2)
     ballspite = pygame.sprite.RenderPlain(ball)
-
-    player_l = Paddle(player_l_img, player_l_rect, 10, display_size[1]/2)
+    # player_l
+    player_l = Paddle(player_l_img, player_l_rect,
+                      40, display_size[1]/2)
     player_l_sprite = pygame.sprite.RenderPlain(player_l)
+    # player_r
+    player_r = Paddle(player_r_img, player_r_rect,
+                      display_size[0] - 40, display_size[1]/2)
+    player_r_sprite = pygame.sprite.RenderPlain(player_r)
 
     DISPLAYSURF.blit(background, (0, 0))
     pygame.display.flip()
+    getTicksLastFrame = 0
+    sums = 0
     # main loop
     while True:
         DISPLAYSURF.fill(BLACK)
@@ -120,15 +138,23 @@ def main():
         if (keys[K_RCTRL] or keys[K_LCTRL]) and keys[K_q]:
             pygame.quit()
             sys.exit()
-        # if keys
+        if keys[K_q]:
+            player_l.move_up()
+        if keys[K_a]:
+            player_l.move_down()
+
+        if keys[K_UP]:
+            player_r.move_up()
+        if keys[K_DOWN]:
+            player_r.move_down()
 
         # draw
-        DISPLAYSURF.blit(background, ball.rect, ball.rect)
-        DISPLAYSURF.blit(background, player_l.rect, player_l.rect)
         ball.update()
         player_l.update()
+        player_r.update()
         ballspite.draw(DISPLAYSURF)
         player_l_sprite.draw(DISPLAYSURF)
+        player_r_sprite.draw(DISPLAYSURF)
         pygame.display.flip()
         fps_clock.tick(FPS)
 
