@@ -13,11 +13,13 @@ FPS = 70
 assets = 'assets'
 img = 'img'
 left_text = 'Greeting, use arrows & Q, A to control paddle'
-right_text = 'Use Space to start. RCtr + Q to exit'
+right_text = 'Use Space to start. Ctr + Q to exit. Ctr + R reset'
 dir_name = os.path.dirname(__file__)
 font_path = os.path.join(dir_name, assets, 'font', 'Inconsolata-Regular.ttf')
+music_path = os.path.join(dir_name, assets, 'sounds')
 left_score_text = '0'
 right_score_text = '0'
+os.environ['SDL_VIDEO_CENTERED'] = '1'
 
 
 def load_image(name):
@@ -45,7 +47,7 @@ class Ball(pygame.sprite.Sprite):
         self.last_vel = [5, 5]
         self.state = 'pause'
 
-    def update(self, DISPLAYSURF, player_l, player_r):
+    def update(self, bc, player_l, player_r):
         if self.state == 'pause':
             self.velocity = [0, 0]
         elif self.state == 'start':
@@ -89,8 +91,10 @@ class Ball(pygame.sprite.Sprite):
 
                 if self.rect.colliderect(new_p_l) == 1 and not self.hit:
                     self.velocity[0] = - self.velocity[0]
+                    pygame.mixer.Sound.play(bc)
                 elif self.rect.colliderect(new_p_r) == 1 and not self.hit:
                     self.velocity[0] = - self.velocity[0]
+                    pygame.mixer.Sound.play(bc)
                 elif self.hit:
                     self.hit = not self.hit
 
@@ -127,6 +131,7 @@ class Paddle(pygame.sprite.Sprite):
 def main():
     # main initialize
     pygame.init()
+    pygame.mixer.init(44100, -16, 2, 2048)
     DISPLAYSURF = pygame.display.set_mode(display_size, FLAGS)
     pygame.event.set_allowed([QUIT, KEYDOWN])
     DISPLAYSURF.set_alpha(None)
@@ -136,6 +141,9 @@ def main():
         ball_img, ball_rect = load_image('ball.png')
         player_l_img, player_l_rect = load_image('left_board.png')
         player_r_img, player_r_rect = load_image('right_board.png')
+        bc = pygame.mixer.Sound(os.path.join(music_path, '1.wav'))
+        bc.set_volume(0.1)
+        pygame.mixer.music.load(os.path.join(music_path, '2.mp3'))
         load = 0
     # basic init
     pygame.display.set_caption('Pong')
@@ -172,19 +180,14 @@ def main():
                       display_size[0] - 40, display_size[1]/2)
     player_r_sprite = pygame.sprite.RenderPlain(player_r)
 
-    # DISPLAYSURF.blit(background, (0, 0))
     pygame.display.flip()
     getTicksLastFrame = 0
     sums = 0
     score_l = 0
     score_r = 0
-    ##########################
-    ##########################
-    ##########################
+    sound_flag = 0
     # main loop
     while True:
-        # DISPLAYSURF.fill(BLACK)
-
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
@@ -194,11 +197,26 @@ def main():
         DISPLAYSURF.blit(background, player_l.rect, player_l.rect)
         DISPLAYSURF.blit(background, player_r.rect, player_r.rect)
 
+        if not sound_flag:
+            pygame.mixer.music.play(-1)
+            sound_flag = 1
         # handle users control
         keys = pygame.key.get_pressed()
+
         if (keys[K_RCTRL] or keys[K_LCTRL]) and (keys[K_q] or keys[K_w]):
             pygame.quit()
             sys.exit()
+        if keys[K_LCTRL] and keys[K_r]:
+            ball.state = 'pause'
+            ball.rect.center = background.get_rect().center
+            player_l.rect.centery = display_size[1]/2
+            player_r.rect.centery = display_size[1]/2
+            score_l = 0
+            score_r = 0
+            DISPLAYSURF.blit(background, (0, 0))
+            DISPLAYSURF.blit(text_l, text_l_pos)
+            DISPLAYSURF.blit(text_r, text_r_pos)
+
         if keys[K_SPACE] and ball.state == 'pause':
             ball.state = 'start'
             DISPLAYSURF.blit(background, (0, 0))
@@ -217,7 +235,7 @@ def main():
             if keys[K_DOWN]:
                 player_r.move_down()
         # draw
-        ball.update(DISPLAYSURF, player_l, player_r)
+        ball.update(bc, player_l, player_r)
         player_l.update(DISPLAYSURF)
         player_r.update(DISPLAYSURF)
         if ball.state == 'miss_l':
@@ -244,9 +262,7 @@ def main():
             DISPLAYSURF.blit(text_r_s, text_r_s_pos)
 
         pygame.display.flip()
-        print(fps_clock)
-        # print([score_l, score_r])
-        # fps_clock.tick(FPS)
+        fps_clock.tick(FPS)
 
 if __name__ == '__main__':
     main()
