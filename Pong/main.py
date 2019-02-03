@@ -16,6 +16,8 @@ left_text = 'Greeting, use arrows & Q, A to control paddle'
 right_text = 'Use Space to start. RCtr + Q to exit'
 dir_name = os.path.dirname(__file__)
 font_path = os.path.join(dir_name, assets, 'font', 'Inconsolata-Regular.ttf')
+left_score_text = '0'
+right_score_text = '0'
 
 
 def load_image(name):
@@ -40,46 +42,57 @@ class Ball(pygame.sprite.Sprite):
         self.velocity = [5, 5]
         self.area = pygame.display.get_surface().get_rect()
         self.hit = 0
+        self.last_vel = [5, 5]
+        self.state = 'pause'
 
     def update(self, DISPLAYSURF, player_l, player_r):
-        new_pos_rect = Rect(self.rect)
-        new_pos_rect.center = (new_pos_rect.centerx + self.velocity[0],
-                               new_pos_rect.centery + self.velocity[1])
-        self.rect = new_pos_rect
-
-        if not self.area.contains(new_pos_rect):
-            tl = not self.area.collidepoint(new_pos_rect.topleft)
-            tr = not self.area.collidepoint(new_pos_rect.topright)
-            bl = not self.area.collidepoint(new_pos_rect.bottomleft)
-            br = not self.area.collidepoint(new_pos_rect.bottomright)
-            # handle side collision
-            if (tr and tl) or (br and bl):
-                self.velocity[1] = - self.velocity[1]
-            # handle left player miss
-            if (tl and bl) and not self.hit:
-                self.rect.center = self.center_s
-                self.velocity[0] = -self.velocity[0]
-                flag = randint(0, 1)
-                if flag:
-                    self.velocity[1] = -self.velocity[1]
-            # handle right player miss
-            if (tr and br) and not self.hit:
-                self.rect.center = self.center_s
-                self.velocity[0] = -self.velocity[0]
-                flag = randint(0, 1)
-                if flag:
-                    self.velocity[1] = -self.velocity[1]
-        # handle paddle collision
+        if self.state == 'pause':
+            self.velocity = [0, 0]
+        elif self.state == 'start':
+            self.velocity = self.last_vel
+            self.state = 'ingame'
         else:
-            player_l.rect.inflate(-3, -3)
-            player_r.rect.inflate(-3, -3)
+            self.state = 'ingame'
+            new_pos_rect = Rect(self.rect)
+            new_pos_rect.center = (new_pos_rect.centerx + self.velocity[0],
+                                   new_pos_rect.centery + self.velocity[1])
+            self.rect = new_pos_rect
 
-            if self.rect.colliderect(player_l.rect) == 1 and not self.hit:
-                self.velocity[0] = - self.velocity[0]
-            elif self.rect.colliderect(player_r.rect) == 1 and not self.hit:
-                self.velocity[0] = - self.velocity[0]
-            elif self.hit:
-                self.hit = not self.hit
+            if not self.area.contains(new_pos_rect):
+                tl = not self.area.collidepoint(new_pos_rect.topleft)
+                tr = not self.area.collidepoint(new_pos_rect.topright)
+                bl = not self.area.collidepoint(new_pos_rect.bottomleft)
+                br = not self.area.collidepoint(new_pos_rect.bottomright)
+                # handle side collision
+                if (tr and tl) or (br and bl):
+                    self.velocity[1] = - self.velocity[1]
+                # handle left player miss
+                if (tl and bl) and not self.hit:
+                    self.rect.center = self.center_s
+                    self.velocity[0] = -self.velocity[0]
+                    flag = randint(0, 1)
+                    if flag:
+                        self.velocity[1] = -self.velocity[1]
+                    self.state = 'miss_l'
+                # handle right player miss
+                if (tr and br) and not self.hit:
+                    self.rect.center = self.center_s
+                    self.velocity[0] = -self.velocity[0]
+                    flag = randint(0, 1)
+                    if flag:
+                        self.velocity[1] = -self.velocity[1]
+                    self.state = 'miss_r'
+            # handle paddle collision
+            else:
+                new_p_l = player_l.rect.inflate(-5, -1)
+                new_p_r = player_r.rect.inflate(-5, -1)
+
+                if self.rect.colliderect(new_p_l) == 1 and not self.hit:
+                    self.velocity[0] = - self.velocity[0]
+                elif self.rect.colliderect(new_p_r) == 1 and not self.hit:
+                    self.velocity[0] = - self.velocity[0]
+                elif self.hit:
+                    self.hit = not self.hit
 
 
 class Paddle(pygame.sprite.Sprite):
@@ -93,7 +106,7 @@ class Paddle(pygame.sprite.Sprite):
         self.state = ''
 
     def update(self, DISPLAYSURF):
-        pygame.draw.rect(DISPLAYSURF, (255, 0, 0), self.rect, 1)
+        # pygame.draw.rect(DISPLAYSURF, (255, 0, 0), self.rect, 1)
         pass
 
     def move_up(self):
@@ -144,8 +157,8 @@ def main():
     text_l_pos.centerx = background.get_rect().centerx
     text_r_pos.centerx = background.get_rect().centerx
     text_r_pos.centery = text_l_pos.bottom + 10
-    # background.blit(text_l, text_l_pos)
-    # background.blit(text_r, text_r_pos)
+    DISPLAYSURF.blit(text_l, text_l_pos)
+    DISPLAYSURF.blit(text_r, text_r_pos)
 
     # create and init ball
     ball = Ball(ball_img, ball_rect, display_size[0]/2, display_size[1]/2)
@@ -159,12 +172,15 @@ def main():
                       display_size[0] - 40, display_size[1]/2)
     player_r_sprite = pygame.sprite.RenderPlain(player_r)
 
-    DISPLAYSURF.blit(background, (0, 0))
+    # DISPLAYSURF.blit(background, (0, 0))
     pygame.display.flip()
     getTicksLastFrame = 0
     sums = 0
-    #########################
-    ########################
+    score_l = 0
+    score_r = 0
+    ##########################
+    ##########################
+    ##########################
     # main loop
     while True:
         # DISPLAYSURF.fill(BLACK)
@@ -180,29 +196,57 @@ def main():
 
         # handle users control
         keys = pygame.key.get_pressed()
-        if (keys[K_RCTRL] or keys[K_LCTRL]) and keys[K_q]:
+        if (keys[K_RCTRL] or keys[K_LCTRL]) and (keys[K_q] or keys[K_w]):
             pygame.quit()
             sys.exit()
-        if keys[K_q]:
-            player_l.move_up()
-        if keys[K_a]:
-            player_l.move_down()
+        if keys[K_SPACE] and ball.state == 'pause':
+            ball.state = 'start'
+            DISPLAYSURF.blit(background, (0, 0))
 
-        if keys[K_UP]:
-            player_r.move_up()
-        if keys[K_DOWN]:
-            player_r.move_down()
-
+        if keys[K_ESCAPE]:
+            ball.state = 'pause'
+        # left player handle control
+        if ball.state != 'pause':
+            if keys[K_q]:
+                player_l.move_up()
+            if keys[K_a]:
+                player_l.move_down()
+            # right player handle control
+            if keys[K_UP]:
+                player_r.move_up()
+            if keys[K_DOWN]:
+                player_r.move_down()
         # draw
         ball.update(DISPLAYSURF, player_l, player_r)
         player_l.update(DISPLAYSURF)
         player_r.update(DISPLAYSURF)
+        if ball.state == 'miss_l':
+            score_r += 1
+        if ball.state == 'miss_r':
+            score_l += 1
+        # if ball.state != 'pause':
         ballspite.draw(DISPLAYSURF)
         player_l_sprite.draw(DISPLAYSURF)
         player_r_sprite.draw(DISPLAYSURF)
+
+        if ball.state != 'pause':
+            left_score_text = '{}'.format(score_l)
+            right_score_text = '{}'.format(score_r)
+            text_l_s = font.render(left_score_text, 1, WHITE)
+            text_r_s = font.render(right_score_text, 1, WHITE)
+            text_l_s_pos = text_l_s.get_rect()
+            text_r_s_pos = text_r_s.get_rect()
+            text_l_s_pos.center = (background.get_rect().centerx * 1/2, 10)
+            text_r_s_pos.center = (background.get_rect().centerx * 3/2, 10)
+            DISPLAYSURF.blit(background, text_l_s_pos, text_l_s_pos)
+            DISPLAYSURF.blit(background, text_r_s_pos, text_r_s_pos)
+            DISPLAYSURF.blit(text_l_s, text_l_s_pos)
+            DISPLAYSURF.blit(text_r_s, text_r_s_pos)
+
         pygame.display.flip()
         print(fps_clock)
-        fps_clock.tick(FPS)
+        # print([score_l, score_r])
+        # fps_clock.tick(FPS)
 
 if __name__ == '__main__':
     main()
