@@ -7,7 +7,7 @@ List of games
 | #   | Game      | Status      | Download                                                               |
 | --- | --------- | ----------- | ---------------------------------------------------------------------- |
 | 1   | Pong      | `completed` | [*](https://github.com/Bytan97/LUL/releases/download/v0.1.1/0.1.1.zip) |
-| 2   | Breakout  | `(`         | `(`                                                                    |
+| 2   | Snake     | `completed` | `[*](https://github.com/Bytan97/LUL/releases/download/0.0.1/dist.zip)` |
 | 3   | Asteroids | `:C`        | `:C`                                                                   |
 | 4   |           |             |                                                                        |
 | 5   |           |             |                                                                        |
